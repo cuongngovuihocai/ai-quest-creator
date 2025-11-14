@@ -1,0 +1,8 @@
+{
+  "name": "AI Quest Creator for Gamified Learning",
+  "description": "An AI tool for teachers to generate gamified learning quests based on the classroom or school environment. Students complete tasks, and an AI validates their text and image submissions.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone"
+  ]
+}
