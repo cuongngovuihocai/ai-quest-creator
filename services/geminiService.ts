@@ -19,22 +19,33 @@ const blobToBase64 = (blob: Blob): Promise<string> => {
 export const generateQuest = async (apiKey: string, topic: string, location: string, objective: string): Promise<Quest> => {
   const ai = new GoogleGenAI({ apiKey });
   const generationPrompt = `
-    You are an AI assistant for creating gamified educational quests for 6th-grade math students in Vietnam.
-    Based on the following inputs, generate a quest in JSON format.
-    ALL TEXT in the final JSON output (title, story, description, hint) MUST BE IN VIETNAMESE.
-
-    Topic: ${topic}
-    Location: ${location}
-    Learning Objective: ${objective}
-
-    Make the tasks creative, fun, and directly related to the topic and location. Create 2-3 tasks with a variety of types (TEXT, IMAGE, AUDIO).
-    For each task, provide a 'hint' that helps the student without giving away the answer.
-
-    IMPORTANT: After creating the tasks, analyze their complexity (e.g., calculation vs. physical movement) and provide a 'suggestedTimeInSeconds' field with a reasonable estimated time in seconds for a student to complete the entire quest.
-
-    - For IMAGE tasks, make the validationPrompt a clear instruction for an AI vision model (in English) describing the object to be found.
-    - For TEXT tasks, the validationPrompt MUST BE the single, exact, correct answer (e.g., "954", "3.14"). This will be used for direct comparison.
-    - For AUDIO tasks, make the validationPrompt a clear instruction for an AI speech recognition model (in English), describing the key concepts the student should say.
+**PERSONA:** You are a fun and creative game designer for kids. Your strength is turning ordinary school subjects into exciting, real-world treasure hunts that are easy to understand, positive, and logically consistent.
+    **MISSION:** Generate a complete quest as a single, valid JSON object based on the theme below.
+    **THEME:**
+    - Topic: ${topic}
+    - Location: ${location}
+    - Learning Objective: ${objective}
+    **EXECUTION GUIDELINES:**
+    1.  **NARRATIVE - CLEAR & ENGAGING:**
+        - Create a fun, direct, and inspiring `title`.
+        - Write a short, captivating `story` that introduces a clear mission (e.g., treasure hunt, helping a character). The students are the main heroes.
+        - **Simplicity is Key:** Prioritize simple, direct, and easy-to-understand stories. The goal is excitement and clarity.
+        - **Theme of Kindness:** The story must be positive and pro-social (helping, discovering, building).
+    2.  **TASKS - LOGICAL & IMMERSIVE:**
+        - Each task must flow naturally from the story. The math task must be the DIRECT and LOGICAL key to solving the story's problem.
+        - **Clarity is Crucial:** The last sentence of the task `description` must be a direct and unambiguous instruction for the student.
+        - **ABSOLUTELY AVOID** dry, instructional phrases like "Nhiệm vụ của em là...".
+        - **GOOD Example (Simple, Direct, Logical):** "Tấm Bản Đồ Cổ dẫn đến 'kho báu tri thức' đã bị Thần Gió tinh nghịch xé thành nhiều mảnh! Ngài chỉ để lại một mật thư: 'Ta giấu các mảnh bản đồ ở những nơi có số lượng là **Số Nguyên Tố**'. Hãy nhanh chóng khám phá sân trường, tìm một 'vị trí nguyên tố' (ví dụ: một nhóm có 7 cái ghế), **chụp ảnh lại để chứng minh**, và thu thập mảnh bản đồ đầu tiên!"
+    3.  **TASK REQUIREMENTS (Create 2-3 tasks):**
+        - **Single Input Type:** Each task must require ONLY ONE input type (`TEXT`, `IMAGE`, or `AUDIO`).
+        - For each task, generate `description`, `hint`, and `criteriaDescription` in VIETNAMESE.
+        - For each task, generate a `validationPrompt` in ENGLISH with the following specific rules:
+            - **For IMAGE tasks,** the `validationPrompt` must be a clear instruction for an AI vision model describing the object(s) to be found (e.g., "A photo containing a group of exactly 7 chairs").
+            - **For TEXT tasks,** the `validationPrompt` MUST BE the single, exact, correct numerical or text answer (e.g., "75", "Hình vuông").
+            - **For AUDIO tasks,** the `validationPrompt` must be a clear instruction for an AI model, describing the key concepts the student should say (e.g., "The student should explain that a prime number has exactly two divisors: 1 and itself").
+    4.  **FINAL JSON STRUCTURE:**
+        - The final output must include `title`, `story`, a `tasks` array, and a `suggestedTimeInSeconds` field.
+        - ALL user-facing text fields MUST be in VIETNAMESE.
   `;
 
   try {
@@ -103,21 +114,26 @@ export const generateSingleTask = async (
     const existingTaskDescriptions = existingTasks.map(t => t.description).join('; ');
     
     const generationPrompt = `
-        You are an AI assistant for creating a single, gamified educational task for 6th-grade math students in Vietnam.
-        Based on the following context, generate one new task in JSON format.
-        ALL TEXT in the final JSON output (description, hint) MUST BE IN VIETNAMESE.
-
-        Context:
-        - Topic: ${context.topic}
-        - Location: ${context.location}
-        - Learning Objective: ${context.objective}
-        
-        The new task MUST be different from the following existing tasks: "${existingTaskDescriptions}".
-
-        Make the task creative and fun. For the task, also provide a 'hint' that helps the student without giving away the answer. The task type can be TEXT, IMAGE, or AUDIO.
-        - For IMAGE tasks, make the validationPrompt a clear instruction for an AI vision model (in English).
-        - For TEXT tasks, the validationPrompt MUST BE the single, exact, correct answer.
-        - For AUDIO tasks, make the validationPrompt a clear instruction for an AI speech recognition model (in English).
+        **PERSONA:** You are a fun and creative game designer for 6th-grade math students in Vietnam, creating a single, gamified educational task for an ongoing adventure.
+    **MISSION:** Generate ONE new task as a JSON object, based on the context below.
+    **CONTEXT:**
+    - Topic: ${context.topic}
+    - Location: ${context.location}
+    - Learning Objective: ${context.objective}
+    - Existing Tasks to Avoid: "${existingTaskDescriptions}"
+    **EXECUTION GUIDELINES:**
+    1.  **Style and Tone:** The new task must be creative, fun, and use immersive language (avoid "Cô giáo yêu cầu..."). It should be positive, pro-social, and logically consistent.
+    2.  **Uniqueness:** The new task MUST be different from the existing tasks provided in the CONTEXT.
+    3.  **Input & Output Structure:**
+        - The task must require ONLY ONE input type (`TEXT`, `IMAGE`, or `AUDIO`).
+        - You MUST generate the following fields:
+          - `description` (VIETNAMESE): The mission text for the student.
+          - `hint` (VIETNAMESE): A helpful clue for the student.
+          - `criteriaDescription` (VIETNAMESE): A teacher-friendly explanation of the answer.
+          - `validationPrompt` (ENGLISH): This is the machine-readable answer key. Follow these strict rules:
+            - **For IMAGE tasks,** make the validationPrompt a clear instruction for an AI vision model (in English) describing the object to be found.
+            - **For TEXT tasks,** the validationPrompt MUST BE the single, exact, correct answer (e.g., "954", "3.14").
+            - **For AUDIO tasks,** make the validationPrompt a clear instruction for an AI speech recognition model (in English), describing the key concepts the student should say.
     `;
 
     try {
@@ -214,10 +230,19 @@ export const validateImageAnswer = async (apiKey: string, task: Task, imageFile:
     const imagePart = { inlineData: { data: base64Data, mimeType: resizedBlob.type } };
 
     const prompt = `
-      You are an image validation AI for a student game. The student was asked to: '${task.validationPrompt}'.
-      Does this image satisfy the request?
-      First, on a new line, answer only with 'YES' or 'NO'.
-      Then, on the next line, provide a brief, encouraging explanation for the student in VIETNAMESE.
+      You are a friendly and encouraging AI judge in a student's game. Your ONLY job is to verify if the student's submission matches the core requirement.
+
+      **MISSION CONTEXT:**
+      - The teacher's grading criteria (in Vietnamese) is: '${task.criteriaDescription}'.
+      - The student has submitted an image.
+
+      **YOUR TASK:**
+      Analyze the image. Based ONLY on the teacher's criteria, does the image satisfy the request?
+      IGNORE any flavor text or story elements from the original task description (like blackboards, trees, etc.) unless they are explicitly part of the teacher's criteria.
+
+      **RESPONSE FORMAT (Strict):**
+      1. On the first line, answer ONLY with "YES" or "NO".
+      2. On the next lines, provide a brief, positive, and encouraging explanation IN VIETNAMESE.
     `;
     
     const response = await ai.models.generateContent({
@@ -237,10 +262,21 @@ export const validateAudioAnswer = async (apiKey: string, task: Task, audioBlob:
     const audioPart = { inlineData: { data: base64Data, mimeType: audioBlob.type || 'audio/webm' }};
 
     const prompt = `
-      You are an audio validation AI for a student game. The student was asked to say something related to this: '${task.validationPrompt}'.
-      Listen to this audio. Does the student's answer correctly address the task?
-      First, on a new line, answer only with 'YES' or 'NO'.
-      Then, on the next line, provide a brief, encouraging explanation for the student in VIETNAMESE.
+      You are a friendly and encouraging AI judge in a student's game. Your ONLY job is to verify if the student's submission matches the core requirement.
+
+      **MISSION CONTEXT:**
+      - The teacher's grading criteria (in Vietnamese) is: '${task.criteriaDescription}'.
+      - The student has submitted an audio recording.
+
+      **YOUR TASK:**
+      Listen to the audio. Based ONLY on the teacher's criteria, does the student's explanation correctly address the mission?
+      IGNORE any flavor text or story elements.
+
+      **RESPONSE FORMAT (Strict):**
+      1. On the first line, answer ONLY with "YES" or "NO".
+      2. On the next lines, provide a brief, positive, and encouraging explanation for the student IN VIETNAMESE.
+         - If YES, praise their understanding (e.g., "Tuyệt vời! Bạn giải thích rất dễ hiểu!").
+         - If NO, gently suggest a point they might have missed (e.g., "Gần đúng rồi! Hãy thử nghĩ thêm về tính chất của các góc xem sao.").
     `;
     
     try {
@@ -258,10 +294,20 @@ export const validateAudioAnswer = async (apiKey: string, task: Task, audioBlob:
 export const validateTextAnswer = async (apiKey: string, task: Task, studentAnswer: string): Promise<ValidationResult> => {
     const ai = new GoogleGenAI({ apiKey });
     const prompt = `
-    You are a text validation AI for a student game. The correct answer is: '${task.validationPrompt}'. The student's answer is: '${studentAnswer}'.
-    Is the student's answer correct? Consider minor variations like extra spaces or different capitalization as correct, but the core value/text must match.
-    First, on a new line, answer only with 'YES' or 'NO'.
-    Then, on the next line, provide a brief, encouraging explanation for the student in VIETNAMESE. If the answer is correct, just say "Chính xác!". If it's incorrect, provide a helpful tip.
+    You are a friendly and encouraging AI judge in a student's game. Your ONLY job is to verify if the student's submission matches the core requirement.
+
+      **MISSION CONTEXT:**
+      - The teacher's grading criteria (in Vietnamese) is: '${task.criteriaDescription}'.
+      - The student's answer is: '${studentAnswer}'.
+
+      **YOUR TASK:**
+      Based ONLY on the teacher's criteria, is the student's answer correct? Be flexible with minor variations like extra spaces or different capitalization.
+
+      **RESPONSE FORMAT (Strict):**
+      1. On the first line, answer ONLY with "YES" or "NO".
+      2. On the next lines, provide a brief, positive, and encouraging explanation for the student IN VIETNAMESE.
+         - If YES, simply say "Chính xác!".
+         - If NO, provide a small, helpful hint without giving away the answer (e.g., "Chưa đúng rồi! Hãy thử tính lại phép cộng xem sao nhé.").
     `;
     
     try {
